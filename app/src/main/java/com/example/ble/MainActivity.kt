@@ -40,6 +40,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var mWriteCharacteristic: BluetoothGattCharacteristic? = null
+
     private val bluetoothAdapter: BluetoothAdapter by lazy {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothManager.adapter
@@ -54,6 +56,13 @@ class MainActivity : AppCompatActivity() {
         val writeButton = findViewById<Button>(R.id.write_button)
         val readButton = findViewById<Button>(R.id.read_button)
 
+        val redLedOnButton = findViewById<Button>(R.id.led_red_on)
+        val redLedOffButton = findViewById<Button>(R.id.led_red_off)
+        val yellowLedOnButton = findViewById<Button>(R.id.led_yellow_on)
+        val yellowLedOffButton = findViewById<Button>(R.id.led_yellow_off)
+        val whiteLedOnButton = findViewById<Button>(R.id.led_white_on)
+        val whiteLedOffButton = findViewById<Button>(R.id.led_white_off)
+
         startButton.setOnClickListener {
             startBleScan()
         }
@@ -62,19 +71,95 @@ class MainActivity : AppCompatActivity() {
             stopBleScan()
         }
 
-        // BluetoothGattCharacteristicオブジェクトを作成
-        val characteristic = BluetoothGattCharacteristic(
-            UUID.fromString(BuildConfig.CHARACTERISTIC_UUID),  // キャラクタリスティックUUID
-            BluetoothGattCharacteristic.PROPERTY_WRITE,  // プロパティ
-            BluetoothGattCharacteristic.PERMISSION_WRITE  // 権限
-        )
-
-        // 書き込むデータをバイト配列に変換してペイロードに設定
-        val payload = "C0A7".toByteArray(Charsets.UTF_8)
-        characteristic.value = payload
-
         writeButton.setOnClickListener {
-            writeCharacteristic(characteristic, payload)
+            // 書き込むデータをバイト配列に変換してペイロードに設定
+            val payload = "C0A7".toByteArray(Charsets.UTF_8)
+
+            // BluetoothGattCharacteristicオブジェクトを作成
+            mWriteCharacteristic?.let { characteristic ->
+                characteristic.value = payload
+                writeCharacteristic(characteristic, payload)
+            } ?: run {
+                Log.e("debug", "writeCharacteristic: Failed to get write characteristic")
+            }
+        }
+
+        redLedOnButton.setOnClickListener {
+            // 書き込むデータをバイト配列に変換してペイロードに設定
+            val payload = "C0A0".toByteArray(Charsets.UTF_8)
+
+            // BluetoothGattCharacteristicオブジェクトを作成
+            mWriteCharacteristic?.let { characteristic ->
+                characteristic.value = payload
+                writeCharacteristic(characteristic, payload)
+            } ?: run {
+                Log.e("debug", "writeCharacteristic: Failed to get write characteristic")
+            }
+        }
+
+        redLedOffButton.setOnClickListener {
+            // 書き込むデータをバイト配列に変換してペイロードに設定
+            val payload = "C0A1".toByteArray(Charsets.UTF_8)
+
+            // BluetoothGattCharacteristicオブジェクトを作成
+            mWriteCharacteristic?.let { characteristic ->
+                characteristic.value = payload
+                writeCharacteristic(characteristic, payload)
+            } ?: run {
+                Log.e("debug", "writeCharacteristic: Failed to get write characteristic")
+            }
+        }
+
+        yellowLedOnButton.setOnClickListener {
+            // 書き込むデータをバイト配列に変換してペイロードに設定
+            val payload = "C0A2".toByteArray(Charsets.UTF_8)
+
+            // BluetoothGattCharacteristicオブジェクトを作成
+            mWriteCharacteristic?.let { characteristic ->
+                characteristic.value = payload
+                writeCharacteristic(characteristic, payload)
+            } ?: run {
+                Log.e("debug", "writeCharacteristic: Failed to get write characteristic")
+            }
+        }
+
+        yellowLedOffButton.setOnClickListener {
+            // 書き込むデータをバイト配列に変換してペイロードに設定
+            val payload = "C0A3".toByteArray(Charsets.UTF_8)
+
+            // BluetoothGattCharacteristicオブジェクトを作成
+            mWriteCharacteristic?.let { characteristic ->
+                characteristic.value = payload
+                writeCharacteristic(characteristic, payload)
+            } ?: run {
+                Log.e("debug", "writeCharacteristic: Failed to get write characteristic")
+            }
+        }
+
+        whiteLedOnButton.setOnClickListener {
+            // 書き込むデータをバイト配列に変換してペイロードに設定
+            val payload = "C0A4".toByteArray(Charsets.UTF_8)
+
+            // BluetoothGattCharacteristicオブジェクトを作成
+            mWriteCharacteristic?.let { characteristic ->
+                characteristic.value = payload
+                writeCharacteristic(characteristic, payload)
+            } ?: run {
+                Log.e("debug", "writeCharacteristic: Failed to get write characteristic")
+            }
+        }
+
+        whiteLedOffButton.setOnClickListener {
+            // 書き込むデータをバイト配列に変換してペイロードに設定
+            val payload = "C0A5".toByteArray(Charsets.UTF_8)
+
+            // BluetoothGattCharacteristicオブジェクトを作成
+            mWriteCharacteristic?.let { characteristic ->
+                characteristic.value = payload
+                writeCharacteristic(characteristic, payload)
+            } ?: run {
+                Log.e("debug", "writeCharacteristic: Failed to get write characteristic")
+            }
         }
 
         readButton.setOnClickListener {
@@ -312,6 +397,19 @@ class MainActivity : AppCompatActivity() {
                 )
                 val characteristic = gatt.getService(UUID.fromString(BuildConfig.SERVICE_UUID))
                     .getCharacteristic(UUID.fromString(BuildConfig.CHARACTERISTIC_UUID))
+
+                val gattServices = gatt.services
+                for (gattService in gattServices) {
+                    if (gattService.uuid == UUID.fromString(BuildConfig.SERVICE_UUID)) { // YOUR_SERVICE_UUIDには、使用しているサービスのUUIDを指定してください。
+                        val characteristics = gattService.characteristics
+                        for (characteristic in characteristics) {
+                            if (characteristic.uuid == UUID.fromString(BuildConfig.CHARACTERISTIC_UUID)) { // YOUR_CHARACTERISTIC_UUIDには、使用しているキャラクタリスティックのUUIDを指定してください。
+                                mWriteCharacteristic = characteristic
+                                break
+                            }
+                        }
+                    }
+                }
                 // onCharacteristicWrite()の受信を有効化
                 enableNotifications(characteristic)
                 printGattTable() // See implementation just above this section
@@ -327,42 +425,6 @@ class MainActivity : AppCompatActivity() {
                 "BluetoothGattCallback",
                 "ATT MTU changed to $mtu, success: ${status == BluetoothGatt.GATT_SUCCESS}"
             )
-        }
-
-        // if call readCharacteristic, this method will be called
-        override fun onCharacteristicRead(
-            gatt: BluetoothGatt,
-            characteristic: BluetoothGattCharacteristic,
-            status: Int
-        ) {
-            with(characteristic) {
-                when (status) {
-                    BluetoothGatt.GATT_SUCCESS -> {
-                        Log.i(
-                            "BluetoothGattCallback",
-                            "Read characteristic $uuid:\n${value.toHexString()}"
-                        )
-                        Handler(Looper.getMainLooper()).post {
-                            findViewById<TextView>(R.id.result).text = "${this.value}"
-                        }
-                    }
-                    BluetoothGatt.GATT_READ_NOT_PERMITTED -> {
-                        Log.e("BluetoothGattCallback", "Read not permitted for $uuid!")
-                        Handler(Looper.getMainLooper()).post {
-                            findViewById<TextView>(R.id.result).text = "Read not permitted"
-                        }
-                    }
-                    else -> {
-                        Log.e(
-                            "BluetoothGattCallback",
-                            "Characteristic read failed for $uuid, error: $status"
-                        )
-                        Handler(Looper.getMainLooper()).post {
-                            findViewById<TextView>(R.id.result).text = "error"
-                        }
-                    }
-                }
-            }
         }
 
         override fun onCharacteristicWrite(
@@ -408,6 +470,42 @@ class MainActivity : AppCompatActivity() {
                         )
                         Handler(Looper.getMainLooper()).post {
                             findViewById<TextView>(R.id.result).text = "Characteristic write failed"
+                        }
+                    }
+                }
+            }
+        }
+
+        // if call readCharacteristic, this method will be called
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            status: Int
+        ) {
+            with(characteristic) {
+                when (status) {
+                    BluetoothGatt.GATT_SUCCESS -> {
+                        Log.i(
+                            "BluetoothGattCallback",
+                            "Read characteristic $uuid:\n${value.toHexString()}"
+                        )
+                        Handler(Looper.getMainLooper()).post {
+                            findViewById<TextView>(R.id.result).text = "${this.value}"
+                        }
+                    }
+                    BluetoothGatt.GATT_READ_NOT_PERMITTED -> {
+                        Log.e("BluetoothGattCallback", "Read not permitted for $uuid!")
+                        Handler(Looper.getMainLooper()).post {
+                            findViewById<TextView>(R.id.result).text = "Read not permitted"
+                        }
+                    }
+                    else -> {
+                        Log.e(
+                            "BluetoothGattCallback",
+                            "Characteristic read failed for $uuid, error: $status"
+                        )
+                        Handler(Looper.getMainLooper()).post {
+                            findViewById<TextView>(R.id.result).text = "error"
                         }
                     }
                 }
