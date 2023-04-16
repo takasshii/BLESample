@@ -5,47 +5,42 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.bluetooth.*
-import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanFilter
-import android.bluetooth.le.ScanResult
-import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.*
-import android.util.Log
 import android.widget.Button
 import android.widget.TextView
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.ble.Constants.ENABLE_BLUETOOTH_REQUEST_CODE
-import com.example.ble.Constants.RUNTIME_PERMISSION_REQUEST_CODE
+import com.example.ble.presenter.GattClient
+import com.example.ble.ui.BleViewModel
+import com.example.ble.util.Constants.ENABLE_BLUETOOTH_REQUEST_CODE
+import com.example.ble.util.Constants.RUNTIME_PERMISSION_REQUEST_CODE
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import java.util.*
+import javax.inject.Inject
 
+@AndroidEntryPoint
 @SuppressLint("MissingPermission")
 class MainActivity : AppCompatActivity() {
-    private val scanResults = mutableListOf<ScanResult>()
-    private val scanResultAdapter: BLEListAdapter by lazy {
-        BLEListAdapter(scanResults) { result ->
-            // User tapped on a scan result
-            if (isScanning) {
-                stopBleScan()
-            }
-            with(result.device) {
-                Log.w("ScanResultAdapter", "Connecting to $address")
-                connectGatt(applicationContext, false, gattCallback)
-            }
-        }
-    }
 
-    private var mWriteCharacteristic: BluetoothGattCharacteristic? = null
+    private val viewModel: BleViewModel by viewModels()
 
     private val bluetoothAdapter: BluetoothAdapter by lazy {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothManager.adapter
     }
+
+    @Inject
+    lateinit var gattClient: GattClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,107 +63,78 @@ class MainActivity : AppCompatActivity() {
         }
 
         stopButton.setOnClickListener {
-            stopBleScan()
+            viewModel.clearScanResult(isScan = false)
         }
 
         writeButton.setOnClickListener {
-            // 書き込むデータをバイト配列に変換してペイロードに設定
-            val payload = "C0A7".toByteArray(Charsets.UTF_8)
-
-            // BluetoothGattCharacteristicオブジェクトを作成
-            mWriteCharacteristic?.let { characteristic ->
-                characteristic.value = payload
-                writeCharacteristic(characteristic, payload)
-            } ?: run {
-                Log.e("debug", "writeCharacteristic: Failed to get write characteristic")
-            }
+            viewModel.writeCharacteristic(
+                gattClient.getWriteCharacteristic(),
+                "C0A7".toByteArray(Charsets.UTF_8)
+            )
         }
 
         redLedOnButton.setOnClickListener {
-            // 書き込むデータをバイト配列に変換してペイロードに設定
-            val payload = "C0A0".toByteArray(Charsets.UTF_8)
-
-            // BluetoothGattCharacteristicオブジェクトを作成
-            mWriteCharacteristic?.let { characteristic ->
-                characteristic.value = payload
-                writeCharacteristic(characteristic, payload)
-            } ?: run {
-                Log.e("debug", "writeCharacteristic: Failed to get write characteristic")
-            }
+            viewModel.writeCharacteristic(
+                gattClient.getWriteCharacteristic(),
+                "C0A0".toByteArray(Charsets.UTF_8)
+            )
         }
 
         redLedOffButton.setOnClickListener {
-            // 書き込むデータをバイト配列に変換してペイロードに設定
-            val payload = "C0A1".toByteArray(Charsets.UTF_8)
-
-            // BluetoothGattCharacteristicオブジェクトを作成
-            mWriteCharacteristic?.let { characteristic ->
-                characteristic.value = payload
-                writeCharacteristic(characteristic, payload)
-            } ?: run {
-                Log.e("debug", "writeCharacteristic: Failed to get write characteristic")
-            }
+            viewModel.writeCharacteristic(
+                gattClient.getWriteCharacteristic(),
+                "C0A1".toByteArray(Charsets.UTF_8)
+            )
         }
 
         yellowLedOnButton.setOnClickListener {
-            // 書き込むデータをバイト配列に変換してペイロードに設定
-            val payload = "C0A2".toByteArray(Charsets.UTF_8)
-
-            // BluetoothGattCharacteristicオブジェクトを作成
-            mWriteCharacteristic?.let { characteristic ->
-                characteristic.value = payload
-                writeCharacteristic(characteristic, payload)
-            } ?: run {
-                Log.e("debug", "writeCharacteristic: Failed to get write characteristic")
-            }
+            viewModel.writeCharacteristic(
+                gattClient.getWriteCharacteristic(),
+                "C0A2".toByteArray(Charsets.UTF_8)
+            )
         }
 
         yellowLedOffButton.setOnClickListener {
-            // 書き込むデータをバイト配列に変換してペイロードに設定
-            val payload = "C0A3".toByteArray(Charsets.UTF_8)
-
-            // BluetoothGattCharacteristicオブジェクトを作成
-            mWriteCharacteristic?.let { characteristic ->
-                characteristic.value = payload
-                writeCharacteristic(characteristic, payload)
-            } ?: run {
-                Log.e("debug", "writeCharacteristic: Failed to get write characteristic")
-            }
+            viewModel.writeCharacteristic(
+                gattClient.getWriteCharacteristic(),
+                "C0A3".toByteArray(Charsets.UTF_8)
+            )
         }
 
         whiteLedOnButton.setOnClickListener {
-            // 書き込むデータをバイト配列に変換してペイロードに設定
-            val payload = "C0A4".toByteArray(Charsets.UTF_8)
-
-            // BluetoothGattCharacteristicオブジェクトを作成
-            mWriteCharacteristic?.let { characteristic ->
-                characteristic.value = payload
-                writeCharacteristic(characteristic, payload)
-            } ?: run {
-                Log.e("debug", "writeCharacteristic: Failed to get write characteristic")
-            }
+            viewModel.writeCharacteristic(
+                gattClient.getWriteCharacteristic(),
+                "C0A4".toByteArray(Charsets.UTF_8)
+            )
         }
 
         whiteLedOffButton.setOnClickListener {
-            // 書き込むデータをバイト配列に変換してペイロードに設定
-            val payload = "C0A5".toByteArray(Charsets.UTF_8)
-
-            // BluetoothGattCharacteristicオブジェクトを作成
-            mWriteCharacteristic?.let { characteristic ->
-                characteristic.value = payload
-                writeCharacteristic(characteristic, payload)
-            } ?: run {
-                Log.e("debug", "writeCharacteristic: Failed to get write characteristic")
-            }
+            viewModel.writeCharacteristic(
+                gattClient.getWriteCharacteristic(),
+                "C0A5".toByteArray(Charsets.UTF_8)
+            )
         }
 
         readButton.setOnClickListener {
-            readBatteryLevel()
+            viewModel.readBatteryLevel()
+        }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.bleState.collect {
+                    findViewById<TextView>(R.id.textView).text = it.stateMessage
+                    findViewById<TextView>(R.id.result).text = it.stateMessage
+                    findViewById<TextView>(R.id.textView).text = it.stateMessage
+                    it.scanResult?.let { scanResult ->
+                        viewModel.reflectScanResult(scanResult)
+                    }
+                }
+            }
         }
 
         //RecyclerViewの取得
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
-        recyclerView.adapter = scanResultAdapter
+        recyclerView.adapter = viewModel.scanResultAdapter
 
         //LayoutManagerの設定
         val layoutManager = LinearLayoutManager(this)
@@ -240,25 +206,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private var isScanning = false
-
     // 権限が揃っているかどうかを確認して権限を付与するように促す
     private fun startBleScan() {
         if (!hasRequiredRuntimePermissions()) {
             requestRelevantRuntimePermissions()
         } else {
-            scanResults.clear()
-            scanResultAdapter.notifyDataSetChanged()
-            bleScanner.startScan(mutableListOf(filter), scanSettings, scanCallback)
-            isScanning = true
+            viewModel.clearScanResult(isScan = true)
         }
-    }
-
-    private fun stopBleScan() {
-        bleScanner.stopScan(scanCallback)
-        isScanning = false
-        scanResults.clear()
-        scanResultAdapter.notifyDataSetChanged()
     }
 
     private fun Activity.requestRelevantRuntimePermissions() {
@@ -314,304 +268,5 @@ class MainActivity : AppCompatActivity() {
             }
             builder.show()
         }
-    }
-
-    private val bleScanner by lazy {
-        bluetoothAdapter.bluetoothLeScanner
-    }
-
-    val filter = ScanFilter.Builder().setDeviceAddress(BuildConfig.ESP32_MAC_ADDRESS).build()
-
-    private val scanSettings = ScanSettings.Builder()
-        .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-        .build()
-
-    private val scanCallback = object : ScanCallback() {
-        override fun onScanResult(callbackType: Int, result: ScanResult) {
-            val indexQuery = scanResults.indexOfFirst { it.device.address == result.device.address }
-            if (indexQuery != -1) { // A scan result already exists with the same address
-                scanResults[indexQuery] = result
-                scanResultAdapter.notifyItemChanged(indexQuery)
-            } else {
-                with(result.device) {
-                    Log.i(
-                        "ScanCallback",
-                        "Found BLE device! Name: ${name ?: "Unnamed"}, address: $address"
-                    )
-                }
-                scanResults.add(result)
-                scanResultAdapter.notifyItemInserted(scanResults.size)
-            }
-        }
-
-        override fun onScanFailed(errorCode: Int) {
-            Log.e("ScanCallback", "onScanFailed: code $errorCode")
-        }
-    }
-
-    private var bluetoothGatt: BluetoothGatt? = null
-
-    private val gattCallback = object : BluetoothGattCallback() {
-        override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
-            val deviceAddress = gatt.device.address
-
-            // device is connected
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                if (newState == BluetoothProfile.STATE_CONNECTED) {
-                    Log.w("BluetoothGattCallback", "Successfully connected to $deviceAddress")
-                    // Store a reference to BluetoothGatt
-                    bluetoothGatt = gatt
-                    Handler(Looper.getMainLooper()).post {
-                        bluetoothGatt?.discoverServices()
-                        findViewById<TextView>(R.id.textView).text = "Successfully connected"
-                    }
-                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                    Log.w("BluetoothGattCallback", "Successfully disconnected from $deviceAddress")
-                    gatt.close()
-                    Handler(Looper.getMainLooper()).post {
-                        findViewById<TextView>(R.id.textView).text = "disconnected"
-                    }
-                    val characteristic = gatt.getService(UUID.fromString(BuildConfig.SERVICE_UUID))
-                        .getCharacteristic(UUID.fromString(BuildConfig.CHARACTERISTIC_UUID))
-                    // onCharacteristicWrite()の受信を無効化
-                    // disableNotifications(characteristic)
-                }
-            } else {
-                Log.w(
-                    "BluetoothGattCallback",
-                    "Error $status encountered for $deviceAddress! Disconnecting..."
-                )
-                gatt.close()
-                Handler(Looper.getMainLooper()).post {
-                    findViewById<TextView>(R.id.textView).text = "Error $status"
-                }
-            }
-        }
-
-        // gatt's service is discovered
-        override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
-            with(gatt) {
-                Log.w(
-                    "BluetoothGattCallback",
-                    "Discovered ${services.size} services for ${device.address}"
-                )
-                val characteristic = gatt.getService(UUID.fromString(BuildConfig.SERVICE_UUID))
-                    .getCharacteristic(UUID.fromString(BuildConfig.CHARACTERISTIC_UUID))
-
-                val gattServices = gatt.services
-                for (gattService in gattServices) {
-                    if (gattService.uuid == UUID.fromString(BuildConfig.SERVICE_UUID)) { // YOUR_SERVICE_UUIDには、使用しているサービスのUUIDを指定してください。
-                        val characteristics = gattService.characteristics
-                        for (characteristic in characteristics) {
-                            if (characteristic.uuid == UUID.fromString(BuildConfig.CHARACTERISTIC_UUID)) { // YOUR_CHARACTERISTIC_UUIDには、使用しているキャラクタリスティックのUUIDを指定してください。
-                                mWriteCharacteristic = characteristic
-                                break
-                            }
-                        }
-                    }
-                }
-                // onCharacteristicWrite()の受信を有効化
-                enableNotifications(characteristic)
-                printGattTable() // See implementation just above this section
-                // Consider connection setup as complete here
-                Handler(Looper.getMainLooper()).post {
-                    findViewById<TextView>(R.id.textView).text = "Discovered Service"
-                }
-            }
-        }
-
-        override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
-            Log.d(
-                "BluetoothGattCallback",
-                "ATT MTU changed to $mtu, success: ${status == BluetoothGatt.GATT_SUCCESS}"
-            )
-        }
-
-        override fun onCharacteristicWrite(
-            gatt: BluetoothGatt,
-            characteristic: BluetoothGattCharacteristic,
-            status: Int
-        ) {
-            Handler(Looper.getMainLooper()).post {
-                findViewById<TextView>(R.id.result).text = "call onCharacteristicWrite function"
-            }
-            with(characteristic) {
-                when (status) {
-                    BluetoothGatt.GATT_SUCCESS -> {
-                        Log.i(
-                            "BluetoothGattCallback",
-                            "Wrote to characteristic $uuid | value: ${value.toHexString()}"
-                        )
-                        Handler(Looper.getMainLooper()).post {
-                            findViewById<TextView>(R.id.result).text =
-                                "wrote ${value.toHexString()}"
-                        }
-                    }
-                    // ATTRIBUTE_LENGTHを超えてしまっている場合
-                    BluetoothGatt.GATT_INVALID_ATTRIBUTE_LENGTH -> {
-                        Log.e("BluetoothGattCallback", "Write exceeded connection ATT MTU!")
-                        Handler(Looper.getMainLooper()).post {
-                            findViewById<TextView>(R.id.result).text =
-                                "wrote exceeded connection ATT MTU!"
-                        }
-                    }
-                    // 書き込みが許可されていない場合
-                    // チェックする前にfalseを返すことがあるのであまりお勧めされない
-                    BluetoothGatt.GATT_WRITE_NOT_PERMITTED -> {
-                        Log.e("BluetoothGattCallback", "Write not permitted for $uuid!")
-                        Handler(Looper.getMainLooper()).post {
-                            findViewById<TextView>(R.id.result).text = "Write not permitted"
-                        }
-                    }
-                    else -> {
-                        Log.e(
-                            "BluetoothGattCallback",
-                            "Characteristic write failed for $uuid, error: $status"
-                        )
-                        Handler(Looper.getMainLooper()).post {
-                            findViewById<TextView>(R.id.result).text = "Characteristic write failed"
-                        }
-                    }
-                }
-            }
-        }
-
-        // if call readCharacteristic, this method will be called
-        override fun onCharacteristicRead(
-            gatt: BluetoothGatt,
-            characteristic: BluetoothGattCharacteristic,
-            status: Int
-        ) {
-            with(characteristic) {
-                when (status) {
-                    BluetoothGatt.GATT_SUCCESS -> {
-                        Log.i(
-                            "BluetoothGattCallback",
-                            "Read characteristic $uuid:\n${value.toHexString()}"
-                        )
-                        Handler(Looper.getMainLooper()).post {
-                            findViewById<TextView>(R.id.result).text = "${this.value}"
-                        }
-                    }
-                    BluetoothGatt.GATT_READ_NOT_PERMITTED -> {
-                        Log.e("BluetoothGattCallback", "Read not permitted for $uuid!")
-                        Handler(Looper.getMainLooper()).post {
-                            findViewById<TextView>(R.id.result).text = "Read not permitted"
-                        }
-                    }
-                    else -> {
-                        Log.e(
-                            "BluetoothGattCallback",
-                            "Characteristic read failed for $uuid, error: $status"
-                        )
-                        Handler(Looper.getMainLooper()).post {
-                            findViewById<TextView>(R.id.result).text = "error"
-                        }
-                    }
-                }
-            }
-        }
-
-        override fun onCharacteristicChanged(
-            gatt: BluetoothGatt,
-            characteristic: BluetoothGattCharacteristic
-        ) {
-            with(characteristic) {
-                Log.i(
-                    "BluetoothGattCallback",
-                    "Characteristic $uuid changed | value: ${value.toHexString()}"
-                )
-            }
-        }
-    }
-
-    fun writeCharacteristic(characteristic: BluetoothGattCharacteristic, payload: ByteArray) {
-        val writeType = when {
-            characteristic.isWritable() -> BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-            characteristic.isWritableWithoutResponse() -> {
-                BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-            }
-            else -> error("Characteristic ${characteristic.uuid} cannot be written to")
-        }
-
-        bluetoothGatt?.let { gatt ->
-            characteristic.writeType = writeType
-            characteristic.value = payload
-            gatt.writeCharacteristic(characteristic)
-        } ?: error("Not connected to a BLE device!")
-    }
-
-    private fun readBatteryLevel() {
-        val batteryServiceUuid = UUID.fromString(BuildConfig.SERVICE_UUID)
-        val batteryLevelCharUuid = UUID.fromString(BuildConfig.CHARACTERISTIC_UUID)
-        bluetoothGatt?.let {
-            val batteryLevelChar = it
-                .getService(batteryServiceUuid)?.getCharacteristic(batteryLevelCharUuid)
-            if (batteryLevelChar?.isReadable() == true) {
-                it.readCharacteristic(batteryLevelChar)
-            }
-        }
-    }
-
-    // UUIDとCCCD（通知）のUUIDが一致するかどうかをチェックしている
-    fun writeDescriptor(descriptor: BluetoothGattDescriptor, payload: ByteArray) {
-        bluetoothGatt?.let { gatt ->
-            descriptor.value = payload
-            gatt.writeDescriptor(descriptor)
-        } ?: error("Not connected to a BLE device!")
-    }
-
-    fun enableNotifications(characteristic: BluetoothGattCharacteristic) {
-        val cccdUuid = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB")
-        val payload = when {
-            characteristic.isIndicatable() -> BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
-            characteristic.isNotifiable() -> BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-            else -> {
-                Log.e(
-                    "ConnectionManager",
-                    "${characteristic.uuid} doesn't support notifications/indications"
-                )
-                return
-            }
-        }
-
-        characteristic.getDescriptor(cccdUuid)?.let { cccDescriptor ->
-            if (bluetoothGatt?.setCharacteristicNotification(characteristic, true) == false) {
-                Log.e(
-                    "ConnectionManager",
-                    "setCharacteristicNotification failed for ${characteristic.uuid}"
-                )
-                return
-            }
-            writeDescriptor(cccDescriptor, payload)
-        } ?: Log.e(
-            "ConnectionManager",
-            "${characteristic.uuid} doesn't contain the CCC descriptor!"
-        )
-    }
-
-    fun disableNotifications(characteristic: BluetoothGattCharacteristic) {
-        if (!characteristic.isNotifiable() && !characteristic.isIndicatable()) {
-            Log.e(
-                "ConnectionManager",
-                "${characteristic.uuid} doesn't support indications/notifications"
-            )
-            return
-        }
-
-        val cccdUuid = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
-        characteristic.getDescriptor(cccdUuid)?.let { cccDescriptor ->
-            if (bluetoothGatt?.setCharacteristicNotification(characteristic, false) == false) {
-                Log.e(
-                    "ConnectionManager",
-                    "setCharacteristicNotification failed for ${characteristic.uuid}"
-                )
-                return
-            }
-            writeDescriptor(cccDescriptor, BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE)
-        } ?: Log.e(
-            "ConnectionManager",
-            "${characteristic.uuid} doesn't contain the CCC descriptor!"
-        )
     }
 }

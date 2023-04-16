@@ -1,4 +1,4 @@
-package com.example.ble
+package com.example.ble.ui
 
 import android.annotation.SuppressLint
 import android.bluetooth.le.ScanResult
@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.example.ble.R
 
 class BLEListAdapter(private val bleList: List<ScanResult>, private val connectDevice : (ScanResult) -> Unit) :
     RecyclerView.Adapter<BLEListAdapter.ViewHolder>() {
@@ -23,7 +24,6 @@ class BLEListAdapter(private val bleList: List<ScanResult>, private val connectD
             name = view.findViewById<TextView>(R.id.textView3)
             address = view.findViewById<TextView>(R.id.textView4)
             button = view.findViewById(R.id.button)
-
         }
     }
 
