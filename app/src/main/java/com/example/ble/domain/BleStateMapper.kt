@@ -12,7 +12,6 @@ import javax.inject.Inject
 
 class BleStateMapper @Inject constructor(
     private val gattClient: GattClient,
-    private val scanClient: ScanClient,
     private val blePresenter: BlePresenter
 ) {
     fun map(gattState: GattState, scanState: ScanState) : BleUIState {
@@ -29,6 +28,7 @@ class BleStateMapper @Inject constructor(
                 }
             }
             is GattState.ServiceDiscovered -> {
+                Log.d("debug", "サービスが見つかったよ ${gattClient.getBluetoothGatt()}")
                 characteristic?.let {
                     blePresenter.enableNotifications(it)
                 }

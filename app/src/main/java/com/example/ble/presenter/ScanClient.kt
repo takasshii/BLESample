@@ -6,7 +6,9 @@ import android.util.Log
 import com.example.ble.presenter.domain.ScanState
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class ScanClient @Inject constructor() : ScanCallback() {
 
     private val _state = MutableStateFlow<ScanState>(ScanState.ScanFailed(""))

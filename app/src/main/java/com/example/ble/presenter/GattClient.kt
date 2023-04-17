@@ -18,8 +18,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import java.util.*
 import javax.inject.Inject
+import javax.inject.Singleton
 
 @SuppressLint("MissingPermission")
+@Singleton
 class GattClient @Inject constructor(
     @ApplicationContext val context : Context
 ) : BluetoothGattCallback() {
@@ -59,9 +61,6 @@ class GattClient @Inject constructor(
                 Log.w("BluetoothGattCallback", "Successfully disconnected from $deviceAddress")
                 gatt.close()
                 notifyGattState(GattState.GattDisconnect("disconnected"))
-
-                val characteristic = gatt.getService(UUID.fromString(BuildConfig.SERVICE_UUID))
-                    .getCharacteristic(UUID.fromString(BuildConfig.CHARACTERISTIC_UUID))
             }
         } else {
             Log.w(
@@ -81,8 +80,6 @@ class GattClient @Inject constructor(
                 "BluetoothGattCallback",
                 "Discovered ${services.size} services for ${device.address}"
             )
-            val characteristic = gatt.getService(UUID.fromString(BuildConfig.SERVICE_UUID))
-                .getCharacteristic(UUID.fromString(BuildConfig.CHARACTERISTIC_UUID))
 
             val gattServices = gatt.services
             for (gattService in gattServices) {
@@ -91,6 +88,7 @@ class GattClient @Inject constructor(
                     for (characteristic in characteristics) {
                         if (characteristic.uuid == UUID.fromString(BuildConfig.CHARACTERISTIC_UUID)) { // YOUR_CHARACTERISTIC_UUIDには、使用しているキャラクタリスティックのUUIDを指定してください。
                             mWriteCharacteristic = characteristic
+                            Log.d("debug", "mWriteCharacteristic is initialized $characteristic")
                             break
                         }
                     }
