@@ -4,18 +4,16 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.util.Log
 import com.example.ble.presenter.domain.ScanState
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 class ScanClient @Inject constructor() : ScanCallback() {
 
-    private val _state = MutableSharedFlow<ScanState>()
-    val state: SharedFlow<ScanState> = _state.asSharedFlow()
+    private val _state = MutableStateFlow<ScanState>(ScanState.ScanFailed(""))
+    val state: StateFlow<ScanState> = _state.asStateFlow()
 
     private fun notifyScanState(state: ScanState) {
-        _state.tryEmit(state)
+        _state.value = state
     }
 
     override fun onScanResult(callbackType: Int, result: ScanResult) {

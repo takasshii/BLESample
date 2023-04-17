@@ -7,4 +7,13 @@ data class BleUIState(
     val scanResult : ScanResult?,
     val result : String,
     val errorMessage : String,
-)
+) {
+    companion object {
+        val INITIAL = BleUIState(
+            stateMessage = "",
+            scanResult = null,
+            result = "",
+            errorMessage = ""
+        )
+    }
+}

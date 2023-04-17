@@ -1,15 +1,14 @@
-
 package com.example.ble.domain
 
 import android.bluetooth.le.ScanResult
+import android.util.Log
 import com.example.ble.BuildConfig
 import com.example.ble.presenter.BlePresenter
 import com.example.ble.presenter.GattClient
 import com.example.ble.presenter.ScanClient
 import com.example.ble.presenter.domain.GattState
 import com.example.ble.presenter.domain.ScanState
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.*
 import java.util.*
 import javax.inject.Inject
 
@@ -24,55 +23,54 @@ class BleUseCase @Inject constructor(
             scanClient.state
         ) { gattState, scanState ->
 
-            val characteristic = gattClient.getBluetoothGatt()?.getService(UUID.fromString(BuildConfig.SERVICE_UUID))
-                ?.getCharacteristic(UUID.fromString(BuildConfig.CHARACTERISTIC_UUID))
+            val characteristic =
+                gattClient.getBluetoothGatt()?.getService(UUID.fromString(BuildConfig.SERVICE_UUID))
+                    ?.getCharacteristic(UUID.fromString(BuildConfig.CHARACTERISTIC_UUID))
 
-            var stateMessage = ""
-            var result = ""
-            var errorMessage = ""
-            var scanResult : ScanResult? = null
+            Log.d("debug", "state is $scanState")
 
             when (gattState) {
-                is GattState.GattConnect -> {
-                    stateMessage = gattState.message
-                }
                 is GattState.GattDisconnect -> {
                     characteristic?.let {
                         blePresenter.disableNotifications(it)
                     }
-                    stateMessage = gattState.message
                 }
                 is GattState.ServiceDiscovered -> {
                     characteristic?.let {
                         blePresenter.enableNotifications(it)
                     }
-                    stateMessage = gattState.message
                 }
-                is GattState.CharacteristicWriteSuccess -> {
-                    result = gattState.message
-                }
-                is GattState.CharacteristicReadSuccess -> {
-                    result = gattState.message
-                }
-                is GattState.CharacteristicWriteError -> {
-                    errorMessage = gattState.message
-                }
-                is GattState.CharacteristicReadError -> {
-                    errorMessage = gattState.message
-                }
-                is GattState.GattError -> {
-                    errorMessage = gattState.message
-                }
+                else -> {}
             }
 
-            when (scanState) {
-                is ScanState.ScanResult -> {
-                    scanResult = scanState.result
-                }
-                is ScanState.ScanFailed -> {
-                    errorMessage = scanState.message
-                }
+            val stateMessage = when (gattState) {
+                is GattState.GattConnect -> gattState.message
+                is GattState.GattDisconnect -> gattState.message
+                is GattState.ServiceDiscovered -> gattState.message
+                else -> ""
             }
+
+            val result = when (gattState) {
+                is GattState.CharacteristicWriteSuccess -> gattState.message
+                is GattState.CharacteristicReadSuccess -> gattState.message
+                else -> ""
+            }
+
+            val gattErrorMessage = when (gattState) {
+                is GattState.CharacteristicWriteError -> gattState.message
+                is GattState.CharacteristicReadError -> gattState.message
+                is GattState.GattError -> gattState.message
+                else -> ""
+            }
+
+            val scanErrorMessage = when(scanState) {
+                is ScanState.ScanFailed -> scanState.message
+                else -> ""
+            }
+
+            val errorMessage = gattErrorMessage + if (gattErrorMessage.isNotEmpty() && scanErrorMessage.isNotEmpty()) " / " else "" + scanErrorMessage
+
+            val scanResult = if (scanState is ScanState.ScanResult) scanState.result else null
 
             BleUIState(
                 stateMessage = stateMessage,
@@ -80,6 +78,6 @@ class BleUseCase @Inject constructor(
                 errorMessage = errorMessage,
                 scanResult = scanResult
             )
-        }
+        }.distinctUntilChanged()
     }
 }

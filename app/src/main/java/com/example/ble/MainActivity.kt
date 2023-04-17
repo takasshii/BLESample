@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.*
+import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.viewModels
@@ -122,9 +123,10 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.bleState.collect {
+                    Log.d("debug", "collect in mainActivity is $it")
                     findViewById<TextView>(R.id.textView).text = it.stateMessage
-                    findViewById<TextView>(R.id.result).text = it.stateMessage
-                    findViewById<TextView>(R.id.textView).text = it.stateMessage
+                    findViewById<TextView>(R.id.result).text = it.result
+                    findViewById<TextView>(R.id.result).text = it.errorMessage
                     it.scanResult?.let { scanResult ->
                         viewModel.reflectScanResult(scanResult)
                     }

@@ -31,11 +31,11 @@ class GattClient @Inject constructor(
     fun getBluetoothGatt(): BluetoothGatt? = bluetoothGatt
     fun getWriteCharacteristic() : BluetoothGattCharacteristic? = mWriteCharacteristic
 
-    private val _state = MutableSharedFlow<GattState>()
-    val state: SharedFlow<GattState> = _state.asSharedFlow()
+    private val _state = MutableStateFlow<GattState>(GattState.GattError(""))
+    val state: SharedFlow<GattState> = _state.asStateFlow()
 
     private fun notifyGattState(state: GattState) {
-        _state.tryEmit(state)
+        _state.value = state
     }
 
     fun connectGatt(bluetoothDevice: BluetoothDevice) {

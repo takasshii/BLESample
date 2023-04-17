@@ -11,8 +11,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ble.*
+import com.example.ble.domain.BleStateMapper
 import com.example.ble.domain.BleUIState
-import com.example.ble.domain.BleUseCase
 import com.example.ble.presenter.GattClient
 import com.example.ble.presenter.ScanClient
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,7 +23,7 @@ import javax.inject.Inject
 @HiltViewModel
 @SuppressLint("MissingPermission")
 class BleViewModel @Inject constructor(
-    private val useCase: BleUseCase,
+    private val bleStateMapper: BleStateMapper,
     private val gattClient: GattClient,
     private val scanClient: ScanClient,
     private val scanSettings: ScanSettings,
@@ -55,10 +55,14 @@ class BleViewModel @Inject constructor(
         bluetoothAdapter.bluetoothLeScanner
     }
 
-    val bleState: SharedFlow<BleUIState> = useCase().shareIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly
-    )
+    val bleState: StateFlow<BleUIState> = gattClient.state
+        .combine(scanClient.state) { gattState, scanState ->
+            bleStateMapper.map(gattState, scanState)
+        }.distinctUntilChanged().stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(),
+            BleUIState.INITIAL
+        )
 
     fun reflectScanResult(result: ScanResult) {
         val indexQuery = scanResults.indexOfFirst { it.device.address == result.device.address }
@@ -77,12 +81,12 @@ class BleViewModel @Inject constructor(
         }
     }
 
-    fun clearScanResult(isScan : Boolean) {
+    fun clearScanResult(isScan: Boolean) {
         scanResults.clear()
         scanResultAdapter.notifyDataSetChanged()
         isScanning = isScan
 
-        if(isScan) {
+        if (isScan) {
             bleScanner.startScan(mutableListOf(scanFilter), scanSettings, scanClient)
         } else {
             bleScanner.stopScan(scanClient)
@@ -90,6 +94,7 @@ class BleViewModel @Inject constructor(
     }
 
     fun writeCharacteristic(characteristic: BluetoothGattCharacteristic?, payload: ByteArray) {
+        Log.d("debug", "characteristic is $characteristic")
         characteristic?.let {
             val writeType = when {
                 characteristic.isWritable() -> BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
