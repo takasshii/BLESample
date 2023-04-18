@@ -11,8 +11,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ble.*
-import com.example.ble.domain.BleStateMapper
 import com.example.ble.domain.BleUIState
+import com.example.ble.domain.BleUseCase
 import com.example.ble.presenter.GattClient
 import com.example.ble.presenter.ScanClient
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,7 +23,7 @@ import javax.inject.Inject
 @HiltViewModel
 @SuppressLint("MissingPermission")
 class BleViewModel @Inject constructor(
-    private val bleStateMapper: BleStateMapper,
+    useCase: BleUseCase,
     private val gattClient: GattClient,
     private val scanClient: ScanClient,
     private val scanSettings: ScanSettings,
@@ -31,7 +31,7 @@ class BleViewModel @Inject constructor(
     private val bluetoothManager: BluetoothManager
 ) : ViewModel() {
 
-    val scanResults = mutableListOf<ScanResult>()
+    private val scanResults = mutableListOf<ScanResult>()
     private var isScanning = false
 
     val scanResultAdapter: BLEListAdapter by lazy {
@@ -55,14 +55,11 @@ class BleViewModel @Inject constructor(
         bluetoothAdapter.bluetoothLeScanner
     }
 
-    val bleState: StateFlow<BleUIState> = gattClient.state
-        .combine(scanClient.state) { gattState, scanState ->
-            bleStateMapper.map(gattState, scanState)
-        }.distinctUntilChanged().stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(),
-            BleUIState.INITIAL
-        )
+    val bleState: StateFlow<BleUIState> = useCase().stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(),
+        BleUIState.INITIAL
+    )
 
     fun reflectScanResult(result: ScanResult) {
         val indexQuery = scanResults.indexOfFirst { it.device.address == result.device.address }
