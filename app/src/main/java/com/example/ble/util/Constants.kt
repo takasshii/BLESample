@@ -1,4 +1,4 @@
-package com.example.ble
+package com.example.ble.util
 
 object Constants {
     const val ENABLE_BLUETOOTH_REQUEST_CODE = 1
